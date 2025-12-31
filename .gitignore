@@ -26,3 +26,7 @@ Thumbs.db
 # Sample site folder
 sample site/
 
+# Local development server scripts
+start_server.bat
+start_server.ps1
+
