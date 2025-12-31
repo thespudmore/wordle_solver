@@ -600,9 +600,25 @@
                 letterInput.autocomplete = 'off';
                 letterInput.dataset.index = i;
                 
-                // Auto-advance to next input on letter entry
+                // Auto-advance to next input on letter entry and auto-fill feedback
                 letterInput.addEventListener('input', (e) => {
+                    const previousValue = e.target.value;
                     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                    
+                    const feedbackBtn = document.querySelector(`.feedback-btn[data-index="${i}"]`);
+                    
+                    // If letter was deleted (empty after processing), reset feedback button to gray
+                    if (!e.target.value) {
+                        if (feedbackBtn) {
+                            setFeedbackButton(feedbackBtn, 'gray');
+                        }
+                    } else {
+                        // Letter exists, auto-fill feedback based on previous attempts
+                        if (feedbackBtn) {
+                            autoFillFeedback();
+                        }
+                    }
+                    
                     if (e.target.value && i < 4) {
                         document.getElementById(`letterInput${i + 1}`).focus();
                     }
@@ -628,6 +644,81 @@
             }
         }
 
+        // Auto-fill feedback based on previous attempts
+        function autoFillFeedback() {
+            if (attempts.length === 0) return;
+            
+            // Get current word being typed
+            const currentWord = [];
+            for (let i = 0; i < 5; i++) {
+                const letterInput = document.getElementById(`letterInput${i}`);
+                if (letterInput) {
+                    currentWord[i] = letterInput.value.toUpperCase();
+                }
+            }
+            
+            // For each position, check previous attempts
+            for (let pos = 0; pos < 5; pos++) {
+                const currentLetter = currentWord[pos];
+                if (!currentLetter) continue;
+                
+                const feedbackBtn = document.querySelector(`.feedback-btn[data-index="${pos}"]`);
+                if (!feedbackBtn) continue;
+                
+                // Get current state - only auto-fill if it's still gray (default)
+                const currentState = feedbackBtn.className.includes('green') ? 'green' : 
+                                      feedbackBtn.className.includes('yellow') ? 'yellow' : 'gray';
+                
+                // Only auto-fill if button is still in default gray state
+                if (currentState !== 'gray') continue;
+                
+                let autoFillState = null;
+                
+                // Check all previous attempts
+                for (const attempt of attempts) {
+                    const attemptWord = attempt.word.toUpperCase().split('');
+                    const attemptFeedback = attempt.feedback;
+                    
+                    // Rule 1: If this exact position had green feedback for the same letter, auto-fill green
+                    if (attemptFeedback[pos] === 'green' && attemptWord[pos] === currentLetter) {
+                        autoFillState = 'green';
+                        break; // Green takes highest priority
+                    }
+                    
+                    // Rule 2: If this letter was gray (not in word) in any previous attempt, keep it gray
+                    let letterWasGray = false;
+                    let letterWasInWord = false;
+                    for (let prevPos = 0; prevPos < 5; prevPos++) {
+                        if (attemptWord[prevPos] === currentLetter) {
+                            if (attemptFeedback[prevPos] === 'gray') {
+                                letterWasGray = true;
+                            } else if (attemptFeedback[prevPos] === 'green' || attemptFeedback[prevPos] === 'yellow') {
+                                letterWasInWord = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (letterWasGray && !letterWasInWord && autoFillState === null) {
+                        autoFillState = 'gray';
+                        break;
+                    }
+                }
+                
+                // Apply auto-fill if we determined a state
+                if (autoFillState !== null) {
+                    setFeedbackButton(feedbackBtn, autoFillState);
+                }
+            }
+        }
+        
+        // Helper function to set feedback button state
+        function setFeedbackButton(btn, state) {
+            btn.className = 'feedback-btn';
+            btn.classList.add(state);
+            btn.textContent = state === 'green' ? '✓' : state === 'yellow' ? '~' : '✗';
+        }
+
         // Toggle feedback button state
         function toggleFeedback(btn) {
             const states = ['gray', 'yellow', 'green'];
@@ -637,9 +728,7 @@
             const nextIndex = (currentIndex + 1) % states.length;
             const nextState = states[nextIndex];
             
-            btn.className = 'feedback-btn';
-            btn.classList.add(nextState);
-            btn.textContent = nextState === 'green' ? '✓' : nextState === 'yellow' ? '~' : '✗';
+            setFeedbackButton(btn, nextState);
         }
 
         // Add attempt and filter words
@@ -819,6 +908,8 @@
                             letterInput.value = letters[i] || '';
                         }
                     }
+                    // Auto-fill feedback after setting letters
+                    autoFillFeedback();
                     document.getElementById('letterInput0').focus();
                 };
                 wordsGrid.appendChild(wordDiv);
