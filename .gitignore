@@ -30,3 +30,7 @@ sample site/
 start_server.bat
 start_server.ps1
 
+# Word sorting scripts (preprocessing only)
+sort_words_by_frequency.py
+sort_words_advanced.py
+
