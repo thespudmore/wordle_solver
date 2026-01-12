@@ -910,21 +910,25 @@
                         (f === 'green' || f === 'yellow') && attemptWord[idx] === letter
                     ).length;
                     
-                    // If all instances of this letter are gray, the letter shouldn't be in the word at all
-                    if (countInAttempt === countInFeedback) {
+                    // If all instances of this letter are gray (countInFeedback === 0), 
+                    // the letter shouldn't be in the word at all
+                    if (countInFeedback === 0) {
+                        // All instances are gray, so this letter is not in the word
                         if (wordLetters.includes(letter)) {
                             return false;
                         }
                     } else {
-                        // Some instances are green/yellow, so we can only say this specific position doesn't have it
-                        // But we need to be careful - if this is the only gray instance, the letter might still be in the word
-                        // For simplicity, we'll check if the letter appears more times than allowed
+                        // Some instances are green/yellow, so the letter IS in the word
+                        // We just need to check that this specific position doesn't have it
+                        if (wordLetters[i] === letter) {
+                            return false;
+                        }
+                        
+                        // Also verify the word has the correct number of this letter
+                        // The word must have exactly countInFeedback instances (the ones that are green/yellow)
                         const countInWord = wordLetters.filter(l => l === letter).length;
-                        if (countInWord >= countInFeedback) {
-                            // This is okay, but we still need to check this specific position
-                            if (wordLetters[i] === letter) {
-                                return false;
-                            }
+                        if (countInWord !== countInFeedback) {
+                            return false;
                         }
                     }
                 }
@@ -1105,14 +1109,12 @@
 
         // Reset solver
         function resetSolver() {
-            if (confirm('Are you sure you want to reset? This will clear all attempts.')) {
-                attempts = [];
-                filteredWords = [...allWords];
-                displayAttempts();
-                updateWordDisplay();
-                setupFeedbackButtons();
-                document.getElementById('letterInput0').focus();
-            }
+            attempts = [];
+            filteredWords = [...allWords];
+            displayAttempts();
+            updateWordDisplay();
+            setupFeedbackButtons();
+            document.getElementById('letterInput0').focus();
         }
 
         // Allow Enter key to add attempt from any letter input
